@@ -71,7 +71,7 @@ def vis_ang_xr(d, observer):
     OZ = Z - O
     A = angle_between(OZ, O)
     an = d.copy()
-    an.data = A
+    an.data = - np.degrees(A) + 180
     return an
 
 
