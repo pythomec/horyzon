@@ -1,8 +1,8 @@
 import requests
-import json
 import pandas as pd
+import numpy as np
 
-def get_osm_objects(country='CZ', key='natural', value='peak', extract_tags=['name','ele']):
+def get_osm_objects(country='CZ', key='natural', value='peak', extract_tags={'name':'??','ele':''}):
     '''Get pandas dataframe with OSM objects of given type in a country.
 
     :param country: 'CZ', 'DE', ...
@@ -29,8 +29,8 @@ def get_osm_objects(country='CZ', key='natural', value='peak', extract_tags=['na
     df = pd.DataFrame(data['elements'])
 
     if 'tags' in df:
-        for tag in extract_tags:
-            df[tag] = df['tags'].apply(lambda x: x.get(tag, '??'))
+        for tag, missing in extract_tags.items():
+            df[tag] = df['tags'].apply(lambda x: x.get(tag, missing))
         df.drop('tags', inplace=True, axis=1)
 
     return df
