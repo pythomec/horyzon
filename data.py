@@ -114,7 +114,7 @@ def transform(d, area_def):
     '''Transform data to new projection.
 
     :param d: DataArray
-    :param area_def: destination AreaDefinition
+    :param area_def: destination AreaDefinition or proj4 dict
     :return: d projected to area_def
 
     '''
@@ -128,6 +128,17 @@ def transform(d, area_def):
                                proj_dict=_proj4_to_dict(d.attrs['proj4']),
                                x_size=d.shape[1], y_size=d.shape[0],
                                area_extent=[x0, y0, x1, y1])
+
+    if isinstance(area_def, dict):
+        pk = pyproj.Proj(area_def)
+        xk0, yk0 = pyproj.transform(p1, pk, d.lon[0], d.lat[0])
+        xk1, yk1 = pyproj.transform(p1, pk, d.lon[-1], d.lat[-1])
+
+        Nx = d.shape[1]# FIXME: this may not be a good estimate
+        area_def = AreaDefinition(area_def['proj'], '', proj_id='',
+                                 proj_dict=area_def, x_size=Nx,
+                                 y_size=int(np.abs(yk1-yk0)/np.abs(xk1-xk0)*Nx),
+                                 area_extent=[xk0, yk0, xk1, yk1])
 
     # TODO: use ImageContainerNearest instead
     imcont = ImageContainerQuick(d.values, orig_area)
