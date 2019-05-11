@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import xarray
-from .data import load_grt
 from pathlib import *
 
 
