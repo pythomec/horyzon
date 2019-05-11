@@ -120,7 +120,6 @@ def transform(d, area_def):
     '''
     p1 = pyproj.Proj(proj='latlong', datum='WGS84')
     p2 = pyproj.Proj(d.attrs['proj4'])
-    pk = pyproj.Proj(area_def.proj4_string)
 
     x0, y0 = pyproj.transform(p1, p2, d.lon[0], d.lat[0])
     x1, y1 = pyproj.transform(p1, p2, d.lon[-1], d.lat[-1])
@@ -135,11 +134,8 @@ def transform(d, area_def):
 
     proj_data = imcont.resample(area_def)
 
-    new_x0, new_y0, new_x1, new_y1 = proj_data.geo_def.area_extent
-    new_x_size, new_y_size = proj_data.geo_def.x_size, proj_data.geo_def.y_size
-
-    new_d = xr.DataArray(proj_data.image_data, coords={'x':np.linspace(x0, x1, new_x_size),
-                                                       'y':np.linspace(y0, y1, new_y_size)},
+    new_d = xr.DataArray(proj_data.image_data[::-1,:], coords={'x':area_def.proj_x_coords,
+                                                       'y':area_def.proj_y_coords},
                          dims=['y','x'], attrs={'proj4': proj_data.geo_def.proj4_string})
 
     return new_d
