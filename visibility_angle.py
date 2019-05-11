@@ -1,4 +1,5 @@
 import numpy as np
+
 import matplotlib.pyplot as plt
 import scipy
 import xarray
@@ -6,67 +7,89 @@ from .data import load_grt
 from pathlib import *
 
 
-#def calculate_vis_ang(geo_data, observer):
-
-
-    #lats=geo_data.lat
-    #longs=geo_data.lat
-    #observer[0]
-    #observer[1]
-
-Rz=6.378e6
-lato=16
-lono=50
-alto=1200
-latp=17
-lonp=51
-altp=450
-
-lonp=np.linspace(0,90)
-latp=np.linspace(0,90)
-alts=np.sin(lonp)
-coords=(latp,lonp) #latp,lonp
-
-coords_rad=np.radians(coords) #convert to radians
-
-#print(coords_rad)
-
-
-
-def geo_to_cart(lat,lon,alt):
-    x=(Rz+alt)*np.sin(lon)*np.cos(lat)
-    y=(Rz+alt)*np.cos(lon)*np.cos(lat)
-    z=(Rz+alt)*np.sin(lat)
-    #print(Rz+alt)
-    return np.vstack((x,y,z))
+def geo_to_cart(lat, lon, alt):
+    """
+    Conversion of geographic coordinates to cartesian
+    :param lat: array of latitude coordinates
+    :param lon: array of longtitude coordinates
+    :param alt: array of altitudes
+    :return: array of cartesian coordinates
+    """
+    Rz=6.378e6
+    x = (Rz + alt) * np.sin(lon) * np.cos(lat)
+    y = (Rz + alt) * np.cos(lon) * np.cos(lat)
+    z = (Rz + alt) * np.sin(lat)
+    print('shape z', np.shape(z))
+    return np.dstack((x, y, z))
 
 
 def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector)
+    """ Returns the unit vector of the vector.  
+    :param vector: vector to be normalised
+    :return: normalised vector
+    """
+    return vector / np.dstack([np.linalg.norm(vector, axis=2)] * 3)
+
 
 def angle_between(v1, v2):
-
+    """
+    Calculates angle between two vectors
+    :param v1: first vector
+    :param v2: second vector
+    :return: angle between the vectors
+    """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    return np.arccos(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0))
 
 
+def vis_ang_xr(d, observer):
+    """
+    
+    :param d: DataArray with altitudes
+    :param observer: tuple (latitude,longtitude) of observer
+    :return: DataArray with elavation angles from give obsarvation point
+    """
+    latp = np.radians(d.lat)
+    lonp = np.radians(d.lon)
+    la, lo = np.meshgrid(latp, lonp)
 
-Z=geo_to_cart(coords_rad[0],coords_rad[1],alts)
+    lato = np.radians(observer[0])
+    lono = np.radians(observer[1])
+    alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))]
 
-O=geo_to_cart(np.radians(lono),np.radians(lato),alto)
+    altitudes = d.data  # .reshape(len(latp)*len(lonp)
+    #print(np.shape(altitudes), np.shape(la), np.shape(lo))
 
-OZ=Z-O
-print(np.shape(O))
-print(np.shape(OZ))
-A=np.apply_along_axis(angle_between,1,arr=OZ.T,v2=O.T[0])
-print(np.shape(A))
-plt.plot(lonp,A)
-plt.show()
+    Z = geo_to_cart(la.T, lo.T, altitudes)
+    O = geo_to_cart(lato, lono, alto)
+    OZ = Z - O
+    #print(np.shape(O))
+    #print(np.shape(OZ))
 
-project_path=Path.cwd().parent[1]
-file_path=Path.joinpath(project_path, 'Data', 'GMRTv3.6','CR_SR.grd')
+    #print(np.shape(O))
+    OZ = Z - O
+    A = angle_between(OZ, O)
+    an = d.copy()
+    an.data = A
+    return an
 
-d=load_grt()
+
+##test call
+
+# d = load_grt('CR_SR.grd')
+# nejvyssi = d.where(d == d.max(), drop=True).squeeze()
+# print(gerlach.lat, gerlach.lon)
+#
+# nejnizsi = d.where(d == d.min(), drop=True).squeeze()
+# print(nizko.lat, nizko.lon)
+#
+# A, an = vis_ang_xr(d, (50, 15))
+#
+# print(an)
+# fig, ax = plt.subplots(nrows=2, sharex=True, sharey=True)
+# s = ax[0].imshow(-np.degrees(A) + 180, origin='bottom')
+# plt.colorbar(s, ax=ax[0])
+# r = ax[1].imshow(d.data, origin='bottom')
+# plt.colorbar(r, ax=ax[1])
 #print(A)
