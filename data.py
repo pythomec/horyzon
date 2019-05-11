@@ -8,6 +8,9 @@ def load_grt(fname, name = 'altitude', dlat = None, dlon = None):
     '''Load topographic data from grt file.
 
     :param fname: Path to grt file
+    :param name: name of the returned DataArray
+    :param dlat: requested resolution in latitude (None = do not resample)
+    :param dlon: requested resolution in longitude (None = do not resample)
     :return: xarray dataset with lon, lat as coordinates
     '''
 
