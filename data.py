@@ -70,6 +70,7 @@ def resample(data, dx = None, dy = None):
         new_y = np.arange(data.coords[dimy][0], data.coords[dimy][-1]+resample_dy/2, resample_dy)
 
         # TODO: replace with DataArray.interp after upgrading to newer xarrays
+        # TODO: use nearest neighbour
         z = interp2d(data.coords[dimy], data.coords[dimx], data)
         data = xr.DataArray(z(new_y, new_x), coords={dimx:new_x, dimy: new_y},
                             dims=[dimx, dimy], attrs = data.attrs)
