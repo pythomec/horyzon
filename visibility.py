@@ -35,26 +35,22 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     return ang_in_polar
 
 
-def find_visible_area(Z_polar):
-    """
-    The boolean mask of the visible area and the radial indices of this area boundary.
+def get_mask_and_ridges(ang_in_polar):
+    """Find visible points and ridges in polar coordinates and return corresponding masks
 
-    Syntax:
-    visible_mask, max_i_r = find_visible_area(Z_polar)
+    :param ang_in_polar: DataArray with viewing angles in polar coordinates
+    :return: (mask, edges), DataArrays, masks marking visible points and ridges
     """
-    len_r, len_alpha = np.shape(Z_polar)
-    current_max_Z = np.zeros(len_alpha)
-    max_i_r = np.zeros(len_alpha, dtype=int)
-    # visible_part = []
-    visible_mask = np.empty_like(Z_polar, dtype=bool)
-    for i_r, Z_circle in enumerate(Z_polar):
-        visible_mask[i_r, :] = Z_circle >= current_max_Z
-        if any(visible_mask[i_r, :]):
-            #         visible_part.append((i_r, visible_mask[i_r, :]))
-            current_max_Z[visible_mask[i_r, :]] = Z_circle[visible_mask[i_r, :]]
-            max_i_r[visible_mask[i_r, :]] = i_r
-    return visible_mask, max_i_r
+    cummax = np.maximum.accumulate(ang_in_polar, axis=0)
+    mask = ang_in_polar >= cummax
+    ridges = (ang_in_polar.diff('r').values <= 0) & mask.values[:-1, :]
+    r, theta = ang_in_polar.r, ang_in_polar.theta
+    ridges = xr.DataArray(np.vstack((ridges, [0] * len(theta))), coords={'r': r, 'theta': theta},
+                         dims=['r', 'theta'])
 
+    return mask, ridges
+
+###############################################
 
 # TODO: generate_polar_grid is obsolete -> remove after moving grid size estimates to ang2polar
 def generate_polar_grid(x0, y0, x_grid, y_grid, dx=None, dy=None, dr=None, size='standard'):
