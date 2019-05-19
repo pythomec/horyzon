@@ -6,12 +6,12 @@ import xarray as xr
 def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     """Interpolate observation angle from geographic coordinates to polar coordinates around the observer.
 
-    :param ang: Dataarray with observation angles
+    :param ang: DataArray with observation angles
     :param observer: tuple (latitude,longtitude), position of the observer, if None use ang.attrs['observer']
     :param dtheta: step in polar coordinate [°], default: 180/3600
     :param dr: step in radial coordinate
-    :param maxr:
-    :return:
+    :param maxr: maximum distance where to look for peaks
+    :return: DataArray with observation angles in polar coordinates
     """
     # TODO: dr should be real distance along Earth surface, independent of the original geographic coordinates
     # TODO: default dtheta and dr should be adjusted to grid size (see e.g. generate_polar_grid)
