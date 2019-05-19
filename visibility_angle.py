@@ -47,6 +47,7 @@ def vis_ang_xr(d, observer, m_above = 5):
     
     :param d: DataArray with altitudes
     :param observer: tuple (latitude,longtitude) of observer
+    :param m_above: height of the observer above the terrain [m] (default: 5 m)
     :return: DataArray with elavation angles from give obsarvation point
     """
     latp = np.radians(d.lat)
