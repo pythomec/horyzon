@@ -18,7 +18,7 @@ def geo_to_cart(lat, lon, alt):
     x = (Rz + alt) * np.sin(lon) * np.cos(lat)
     y = (Rz + alt) * np.cos(lon) * np.cos(lat)
     z = (Rz + alt) * np.sin(lat)
-    print('shape z', np.shape(z))
+    #print('shape z', np.shape(z))
     return np.dstack((x, y, z))
 
 
@@ -42,7 +42,7 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0))
 
 
-def vis_ang_xr(d, observer):
+def vis_ang_xr(d, observer, m_above = 5):
     """
     
     :param d: DataArray with altitudes
@@ -55,7 +55,7 @@ def vis_ang_xr(d, observer):
 
     lato = np.radians(observer[0])
     lono = np.radians(observer[1])
-    alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))]
+    alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))] + m_above
 
     altitudes = d.data  # .reshape(len(latp)*len(lonp)
     #print(np.shape(altitudes), np.shape(la), np.shape(lo))
@@ -71,6 +71,7 @@ def vis_ang_xr(d, observer):
     A = angle_between(OZ, O)
     an = d.copy()
     an.data = - np.degrees(A) + 180
+    an.name = 'observation angle'
     return an
 
 
