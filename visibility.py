@@ -1,7 +1,9 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 import xarray as xr
+import pylab as pl
 
+from . import visibility_angle as vis_ang
 
 def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     """Interpolate observation angle from geographic coordinates to polar coordinates around the observer.
@@ -49,6 +51,48 @@ def get_mask_and_ridges(ang_in_polar):
                          dims=['r', 'theta'])
 
     return mask, ridges
+
+
+def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, **kwargs):
+    """Plot panorama from viewing angles in polar coordinates and pixel mask
+
+    :param ang_in_polar: DataArray. Viewing angles in polar coordinates
+    :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
+    :param rotate: rotate the view by this angle [°]
+    :param kwargs: kwargs passed to plotting function (scatter)
+    :return: None
+    """
+
+    thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
+    thetas = thetamesh.ravel()[mask.values.ravel() == 1]
+    angles = ang_in_polar.values.ravel()[mask.values.ravel() == 1]
+
+    thetas = (thetas + rotate) % (360)
+
+    pl.scatter(thetas, angles, s=1, **kwargs)
+
+def plot_panorama(z, observer, rotate = 0, m_above = 5):
+    """
+
+    :param z: DataArray. Topographic data in lon, lat projection, e.g. output of horyzon.data.load_grt
+    :param observer: (lon, lat), position of the observer
+    :param rotate: rotate the view by this angle [°]
+    :param m_above: height of the observer above the terrain [m] (default: 5 m)
+    :return: None
+    """
+
+    lon, lat = observer
+    ang = vis_ang.vis_ang_xr(z, (lat, lon), m_above)
+    ang_in_polar = ang2polar(ang)
+    mask, ridges = get_mask_and_ridges(ang_in_polar)
+
+    pl.figure(figsize=(10, 2.5))
+    plot_panorama_from_mask(ang_in_polar, mask, rotate=rotate, c='gray', alpha=0.1)
+    plot_panorama_from_mask(ang_in_polar, ridges, rotate=rotate, c='k')
+    pl.xlabel('[°]')
+    pl.ylabel('[°]')
+    pl.title('lon =%.2f°, lat =%.2f°' % (lon, lat))
+    pl.tight_layout()
 
 ###############################################
 
