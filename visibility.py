@@ -92,6 +92,7 @@ def plot_panorama(z, observer, rotate = 0, m_above = 5):
     pl.xlabel('[°]')
     pl.ylabel('[°]')
     pl.title('lon =%.2f°, lat =%.2f°' % (lon, lat))
+    pl.xlim([0, 360])
     pl.tight_layout()
 
 ###############################################
