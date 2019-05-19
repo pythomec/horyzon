@@ -1,5 +1,38 @@
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
+import xarray as xr
+
+
+def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
+    """Interpolate observation angle from geographic coordinates to polar coordinates around the observer.
+
+    :param ang: Dataarray with observation angles
+    :param observer: tuple (latitude,longtitude), position of the observer, if None use ang.attrs['observer']
+    :param dtheta: step in polar coordinate [°], default: 180/3600
+    :param dr: step in radial coordinate
+    :param maxr:
+    :return:
+    """
+    # TODO: dr should be real distance along Earth surface, independent of the original geographic coordinates
+    # TODO: default dtheta and dr should be adjusted to grid size (see e.g. generate_polar_grid)
+
+    observer = observer or ang.attrs['observer']
+    ox, oy = observer
+
+    theta = np.arange(0, 360, dtheta)
+    r = np.arange(dr, maxr + dr/2, dr)
+    mesh_theta, mesh_r = np.meshgrid(theta, r)
+
+    viewgrid_x = ox + mesh_r * np.cos(np.deg2rad(mesh_theta))
+    viewgrid_y = oy + mesh_r * np.sin(np.deg2rad(mesh_theta))
+
+    d1, d2 = ang.dims
+    interp_angle = RectBivariateSpline(ang[d1], ang[d2], ang)
+    ang_in_polar = interp_angle(viewgrid_x, viewgrid_y, grid=False)
+    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta}, dims=['r', 'theta'])
+    ang_in_polar.attrs['observer'] = observer
+
+    return ang_in_polar
 
 
 def find_visible_area(Z_polar):
@@ -23,6 +56,7 @@ def find_visible_area(Z_polar):
     return visible_mask, max_i_r
 
 
+# TODO: generate_polar_grid is obsolete -> remove after moving grid size estimates to ang2polar
 def generate_polar_grid(x0, y0, x_grid, y_grid, dx=None, dy=None, dr=None, size='standard'):
     """
     Generate a polar grid around (x0,y0) point, covering the original cartesian grid.
@@ -68,7 +102,7 @@ def generate_polar_grid(x0, y0, x_grid, y_grid, dx=None, dy=None, dr=None, size=
         d_alpha = min(np.arctan(dy / min(x_corners_dist)), np.arctan(dx / min(y_corners_dist))) / np.pi * 180.
 
     # PRODUCE THE GRID
-    r_polar = np.arange(1, max_r, dr)
+    r_polar = np.arange(0, max_r, dr)
     # Divide 360 degrees evenly, avoiding overlap of the last element
     alpha_polar = np.linspace(0, 360, int(360 / d_alpha))[:-1]
 

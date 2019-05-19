@@ -72,6 +72,9 @@ def vis_ang_xr(d, observer, m_above = 5):
     an = d.copy()
     an.data = - np.degrees(A) + 180
     an.name = 'observation angle'
+
+    an.attrs['observer'] = observer
+
     return an
 
 
