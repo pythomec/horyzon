@@ -53,7 +53,7 @@ def get_mask_and_ridges(ang_in_polar):
     return mask, ridges
 
 
-def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, **kwargs):
+def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, y_in_degrees = False, **kwargs):
     """Plot panorama from viewing angles in polar coordinates and pixel mask
 
     :param ang_in_polar: DataArray. Viewing angles in polar coordinates
@@ -69,9 +69,14 @@ def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, **kwargs):
 
     thetas = (thetas + rotate) % (360)
 
-    pl.scatter(thetas, angles, s=1, **kwargs)
+    if y_in_degrees:
+        y  = angles
+    else:
+        y = np.arctan( np.deg2rad(angles - 90))
 
-def plot_panorama(z, observer, rotate = 0, m_above = 5):
+    pl.scatter(thetas, y, s=1, **kwargs)
+
+def plot_panorama(z, observer, rotate = 0, m_above = 5, y_in_degrees = False):
     """
 
     :param z: DataArray. Topographic data in lon, lat projection, e.g. output of horyzon.data.load_grt
@@ -87,10 +92,13 @@ def plot_panorama(z, observer, rotate = 0, m_above = 5):
     mask, ridges = get_mask_and_ridges(ang_in_polar)
 
     pl.figure(figsize=(10, 2.5))
-    plot_panorama_from_mask(ang_in_polar, mask, rotate=rotate, c='gray', alpha=0.1)
-    plot_panorama_from_mask(ang_in_polar, ridges, rotate=rotate, c='k')
+    plot_panorama_from_mask(ang_in_polar, mask, rotate=rotate, y_in_degrees=y_in_degrees, c='gray', alpha=0.1)
+    plot_panorama_from_mask(ang_in_polar, ridges, rotate=rotate, y_in_degrees=y_in_degrees, c='k')
     pl.xlabel('[°]')
-    pl.ylabel('[°]')
+    if y_in_degrees:
+        pl.ylabel('[°]')
+    else:
+        pl.yticks([])
     pl.title('lon =%.2f°, lat =%.2f°' % (lon, lat))
     pl.xlim([0, 360])
     pl.tight_layout()
