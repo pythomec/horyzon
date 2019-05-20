@@ -1,11 +1,13 @@
 # Horyzon
 
 Horyzon is a topographic library which can compute field of view for any place on Earth and make panoramatic plots such 
-as this view on High and Low Tatras in Slovakia: 
+as this view on Tatra Mountains in Slovakia: 
 
 ![Example output](docs/Slovakia_Low_and_High_Tatras.png) 
 
-Horyzon currently uses Global Multi-Resolution Topographic data (GMRT) from https://www.gmrt.org/ .  
+Horyzon currently uses Global Multi-Resolution Topographic data (GMRT) from https://www.gmrt.org/ .
+
+**WARNING:** This is pre-alpha quality code. Many features are missing and the rest is not optimized.
 
 ## Getting Started
 
@@ -20,7 +22,7 @@ Horyzon depends on common libraries such as pandas, xarray, requests. Optionally
 Clone Horyzon from gitlab
 
 ```
-git clone https://gitlab.com/jakub.seidl/horyzon 
+git clone https://github/pythomec/horyzon 
 ```
 
 and use GMRT MapTool https://www.gmrt.org/GMRTMapTool/ to download data in your region of interest. 
