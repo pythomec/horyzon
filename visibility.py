@@ -10,7 +10,7 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
 
     :param ang: DataArray with observation angles
     :param observer: tuple (latitude,longtitude), position of the observer, if None use ang.attrs['observer']
-    :param dtheta: step in polar coordinate [°], default: 180/3600
+    :param dtheta: step in polar coordinate [°], default: 360/3600
     :param dr: step in radial coordinate
     :param maxr: maximum distance where to look for peaks
     :return: DataArray with observation angles in polar coordinates
@@ -18,7 +18,7 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     # TODO: dr should be real distance along Earth surface, independent of the original geographic coordinates
     # TODO: default dtheta and dr should be adjusted to grid size (see e.g. generate_polar_grid)
 
-    observer = observer or ang.attrs['observer']
+    observer = observer or (ang.attrs['lon'], ang.attrs['lat'])
     ox, oy = observer
 
     theta = np.arange(0, 360, dtheta)
@@ -34,7 +34,8 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1:(('r','theta'),grid_x),
                                                       d2:(('r','theta'),grid_y)},
                                 dims=['r', 'theta'])
-    ang_in_polar.attrs['observer'] = observer
+    ang_in_polar.attrs['lon'] = ox
+    ang_in_polar.attrs['lat'] = oy
 
     return ang_in_polar
 
@@ -73,28 +74,7 @@ def get_mask_and_ridges(ang_in_polar, return_horizon = False):
         return mask, ridges
 
 
-def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, y_in_degrees = False, **kwargs):
-    """Plot panorama from viewing angles in polar coordinates and pixel mask
 
-    :param ang_in_polar: DataArray. Viewing angles in polar coordinates
-    :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
-    :param rotate: rotate the view by this angle [°]
-    :param kwargs: kwargs passed to plotting function (scatter)
-    :return: None
-    """
-
-    thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
-    thetas = thetamesh.ravel()[mask.values.ravel() == 1]
-    angles = ang_in_polar.values.ravel()[mask.values.ravel() == 1]
-
-    thetas = (thetas + rotate) % (360)
-
-    if y_in_degrees:
-        y  = angles
-    else:
-        y = np.arctan( np.deg2rad(angles - 90))
-
-    pl.scatter(thetas, y, s=1, **kwargs)
 
 def plot_panorama(z, observer, rotate = 0, m_above = 5, y_in_degrees = False):
     """

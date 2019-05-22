@@ -74,7 +74,9 @@ def vis_ang_xr(d, observer, m_above = 5):
     an.data = - np.degrees(A) + 180
     an.name = 'observation angle'
 
-    an.attrs['observer'] = observer
+    an.attrs['lon'] = observer[0]
+    an.attrs['lat'] = observer[1]
+    an.attrs['above_ground'] = m_above
 
     return an
 
