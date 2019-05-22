@@ -22,7 +22,7 @@ Horyzon depends on common libraries such as pandas, xarray, requests. Optionally
 Clone Horyzon from gitlab
 
 ```
-git clone https://github/pythomec/horyzon 
+git clone https://github.com/pythomec/horyzon.git
 ```
 
 and use GMRT MapTool https://www.gmrt.org/GMRTMapTool/ to download data in your region of interest. 
