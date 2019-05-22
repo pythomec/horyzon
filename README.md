@@ -7,7 +7,7 @@ as this view on Tatra Mountains in Slovakia:
 
 Horyzon currently uses Global Multi-Resolution Topographic data (GMRT) from https://www.gmrt.org/ .
 
-**WARNING:** This is pre-alpha quality code. Many features are missing and the rest is not optimized.
+Horyzon is in an early stage of development, its API is unstable and the features are not yet optimized for speed. 
 
 ## Getting Started
 
@@ -34,20 +34,34 @@ Save the grid data in GMT v3 Compatible NetCDF format. Automatic data download i
 2. Load the data as xarray.DataArray
 
  ```
- from horyzon.data import load_grt  
+ from horyzon import load_grt, Viewpoint  
 
  alt = load_grt(path_to_the_data)
  ```
  
-3. Plot panoramatic view rotated by 90°
+3. Create Viewpoint object (it may take some time)
+
+ ```
+ lon, lat = 20, 49
+ view = Viewpoint(altitude=alt, lon=lon, lat=lat)
+ ```
+ 
+4. Plot panoramatic view rotated by 90°
 
 ```
-import horyzon.visibility as vis
-
-lon, lat = 20, 49
-vis.plot_panorama(alt, (lon, lat), rotate=90) 
+view.plot_panorama(rotate=90) 
 ```
 
-4. And voilà ...
+5. And voilà ...
 
 ![High Tatras in the distance](docs/Slovakia_High_Tatras_in_distance.png)
+
+6. You can also plot field of view, e.g. on the altitude map
+
+```
+import pylab as plt
+
+plt.figure()
+view.altitude.plot()
+view.plot_horizon_lonlat('r') 
+```
