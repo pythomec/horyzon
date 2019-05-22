@@ -37,11 +37,13 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     return ang_in_polar
 
 
-def get_mask_and_ridges(ang_in_polar):
+def get_mask_and_ridges(ang_in_polar, return_horizon = False):
     """Find visible points and ridges in polar coordinates and return corresponding masks
 
     :param ang_in_polar: DataArray with viewing angles in polar coordinates
+    :param return_horizon: bool. Compute and return horizon? Default: False
     :return: (mask, edges), DataArrays, masks marking visible points and ridges
+             or (mask, edges, horizon)
     """
     cummax = np.maximum.accumulate(ang_in_polar, axis=0)
     mask = ang_in_polar >= cummax
@@ -50,7 +52,14 @@ def get_mask_and_ridges(ang_in_polar):
     ridges = xr.DataArray(np.vstack((ridges, [0] * len(theta))), coords={'r': r, 'theta': theta},
                          dims=['r', 'theta'])
 
-    return mask, ridges
+    if return_horizon:
+        ind_last_visible = ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1,:], axis=0) - 1
+        horizon = ang_in_polar.values[ind_last_visible, np.arange(ang_in_polar.shape[1])]
+        horizon = xr.DataArray(horizon, coords={'theta': theta}, dims=['theta'], name='horizon')
+
+        return mask, ridges, horizon
+    else:
+        return mask, ridges
 
 
 def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, y_in_degrees = False, **kwargs):
