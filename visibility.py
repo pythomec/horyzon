@@ -25,13 +25,15 @@ def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
     r = np.arange(dr, maxr + dr/2, dr)
     mesh_theta, mesh_r = np.meshgrid(theta, r)
 
-    viewgrid_x = ox + mesh_r * np.cos(np.deg2rad(mesh_theta))
-    viewgrid_y = oy + mesh_r * np.sin(np.deg2rad(mesh_theta))
+    grid_x = ox + mesh_r * np.cos(np.deg2rad(mesh_theta))
+    grid_y = oy + mesh_r * np.sin(np.deg2rad(mesh_theta))
 
     d1, d2 = ang.dims
     interp_angle = RectBivariateSpline(ang[d1], ang[d2], ang)
-    ang_in_polar = interp_angle(viewgrid_x, viewgrid_y, grid=False)
-    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta}, dims=['r', 'theta'])
+    ang_in_polar = interp_angle(grid_x, grid_y, grid=False)
+    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1:(('r','theta'),grid_x),
+                                                      d2:(('r','theta'),grid_y)},
+                                dims=['r', 'theta'])
     ang_in_polar.attrs['observer'] = observer
 
     return ang_in_polar
@@ -54,8 +56,17 @@ def get_mask_and_ridges(ang_in_polar, return_horizon = False):
 
     if return_horizon:
         ind_last_visible = ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1,:], axis=0) - 1
-        horizon = ang_in_polar.values[ind_last_visible, np.arange(ang_in_polar.shape[1])]
-        horizon = xr.DataArray(horizon, coords={'theta': theta}, dims=['theta'], name='horizon')
+        horizon = {'ang':('theta',ang_in_polar.values[ind_last_visible, np.arange(ang_in_polar.shape[1])])}
+        for c, val in ang_in_polar.coords.items():
+            if c == 'theta':
+                continue
+
+            if val.ndim == 1:
+                horizon[c] = ('theta', val.values[ind_last_visible])
+            elif val.ndim == 2:
+                horizon[c] = ('theta', val.values[ind_last_visible, np.arange(val.shape[1])])
+
+        horizon = xr.Dataset(data_vars = horizon, coords={'theta': theta})
 
         return mask, ridges, horizon
     else:
