@@ -73,36 +73,6 @@ def get_mask_and_ridges(ang_in_polar, return_horizon = False):
     else:
         return mask, ridges
 
-
-
-
-def plot_panorama(z, observer, rotate = 0, m_above = 5, y_in_degrees = False):
-    """
-
-    :param z: DataArray. Topographic data in lon, lat projection, e.g. output of horyzon.data.load_grt
-    :param observer: (lon, lat), position of the observer
-    :param rotate: rotate the view by this angle [°]
-    :param m_above: height of the observer above the terrain [m] (default: 5 m)
-    :return: None
-    """
-
-    lon, lat = observer
-    ang = vis_ang.vis_ang_xr(z, (lat, lon), m_above)
-    ang_in_polar = ang2polar(ang)
-    mask, ridges = get_mask_and_ridges(ang_in_polar)
-
-    pl.figure(figsize=(10, 2.5))
-    plot_panorama_from_mask(ang_in_polar, mask, rotate=rotate, y_in_degrees=y_in_degrees, c='gray', alpha=0.1)
-    plot_panorama_from_mask(ang_in_polar, ridges, rotate=rotate, y_in_degrees=y_in_degrees, c='k')
-    pl.xlabel('[°]')
-    if y_in_degrees:
-        pl.ylabel('[°]')
-    else:
-        pl.yticks([])
-    pl.title('lon =%.2f°, lat =%.2f°' % (lon, lat))
-    pl.xlim([0, 360])
-    pl.tight_layout()
-
 ###############################################
 
 # TODO: generate_polar_grid is obsolete -> remove after moving grid size estimates to ang2polar
