@@ -26,8 +26,9 @@ class Viewpoint:
 
         self.altitude = altitude
         viewing_angle = vis_ang.vis_ang_xr(altitude, (lat, lon), m_above=above_ground)
-        self.viewing_angle_polar = vis.ang2polar(viewing_angle, dtheta=dtheta, dr=dr, maxr=maxr)
-        self.mask, self.ridges, self.horizon = vis.get_mask_and_ridges(self.viewing_angle_polar, return_horizon=True)
+        self.viewing_angle_polar = vis.data2polar(viewing_angle, dtheta=dtheta, dr=dr, maxr=maxr)
+        self.mask, self.ridges = vis.get_mask_and_ridges(self.viewing_angle_polar)
+        self.horizon = vis.compute_horizon(self.mask, self.viewing_angle_polar)
 
     @property
     def lon(self):
