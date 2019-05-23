@@ -19,7 +19,7 @@ class Viewpoint:
         :param lon: longitude of the viewpoint
         :param lat: latitude of the viewpoint
         :param above_ground: height of the observer above ground [m] (default: 5)
-        :param dtheta: step in polar coordinate [°], default: 360/3600*2
+        :param dtheta: step in the polar angle [°], default: 360/3600*2
         :param dr: step in radial coordinate
         :param maxr: maximum distance where to look for peaks
         """
@@ -31,15 +31,21 @@ class Viewpoint:
 
     @property
     def lon(self):
+        """Longitude of the viewpoint
+
+        """
         return self.viewing_angle_polar.attrs['lon']
 
     @property
     def lat(self):
+        """Latitude of the viewpoint
+
+        """
         return self.viewing_angle_polar.attrs['lat']
 
     @staticmethod
     def plot_panorama_scatter(viewing_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
-        """Plot panorama from viewing angles in polar coordinates and pixel mask
+        """Plot panorama from viewing angles in polar coordinates and a pixel mask
 
         :param viewing_angles_polar: DataArray. Viewing angles in polar coordinates
         :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
@@ -49,14 +55,16 @@ class Viewpoint:
         :return: None
         """
 
+        # get horizontal and vertical angles of all visible (non-masked) points
         thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
         thetas = thetamesh.ravel()[mask.values.ravel() == 1]
         angles = viewing_angles_polar.values.ravel()[mask.values.ravel() == 1]
 
+        # rotate the view horizontally and convert y to [m] if requested
         thetas = (thetas + rotate) % (360)
-
         y = angles if y_in_degrees else np.arctan(np.deg2rad(angles - 90))
 
+        # plotting
         plt.scatter(thetas, y, s=1, **kwargs)
 
     def plot_panorama(self, rotate=0, y_in_degrees=False, figsize=(10,2.5), newfig=True):
@@ -72,10 +80,14 @@ class Viewpoint:
         if newfig:
             plt.figure(figsize=(10, 2.5))
 
-            self.plot_panorama_scatter(self.viewing_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
-                                       c='gray', alpha=0.2)
-            self.plot_panorama_scatter(self.viewing_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
-                                       c='k')
+        # plot all visible points
+        self.plot_panorama_scatter(self.viewing_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
+                                   c='gray', alpha=0.2)
+        # highlight edges
+        self.plot_panorama_scatter(self.viewing_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
+                                   c='k')
+
+        # set labels etc.
         plt.xlabel('[°]')
         if y_in_degrees:
             plt.ylabel('[°]')
