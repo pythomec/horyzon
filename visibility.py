@@ -48,12 +48,11 @@ def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
 
 
 def get_mask_and_ridges(ang_in_polar):
-    """Find visible points and ridges in polar coordinates and return corresponding masks
+    """Find visible points and ridges in polar coordinates
 
     :param ang_in_polar: DataArray with viewing angles in polar coordinates
     :param return_horizon: bool. Compute and return horizon? Default: False
     :return: (mask, edges), DataArrays, masks marking visible points and ridges
-             or (mask, edges, horizon)
 
     """
 
@@ -70,7 +69,7 @@ def get_mask_and_ridges(ang_in_polar):
     return mask, ridges
 
 def compute_horizon(mask, data):
-    """Compute horizon from visibility mask and find data and coordinates along it
+    """Compute horizon and evaluate its coordinates and data along it
 
     :param mask: DataArray. Visibility mask
     :param data: DataArray. Data to be evaluated along horizon. Horizontal dimension should be 'theta'.

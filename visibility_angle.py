@@ -1,29 +1,25 @@
 import numpy as np
-
-import matplotlib.pyplot as plt
-import scipy
-import xarray
-from pathlib import *
-
+import xarray as xr
 
 def geo_to_cart(lat, lon, alt):
-    """
-    Conversion of geographic coordinates to cartesian
+    """Convert geographic coordinates to cartesian
+
     :param lat: array of latitude coordinates
     :param lon: array of longtitude coordinates
     :param alt: array of altitudes
     :return: array of cartesian coordinates
     """
-    Rz=6.378e6
+    Rz = 6.378e6
     x = (Rz + alt) * np.sin(lon) * np.cos(lat)
     y = (Rz + alt) * np.cos(lon) * np.cos(lat)
     z = (Rz + alt) * np.sin(lat)
-    #print('shape z', np.shape(z))
+
     return np.dstack((x, y, z))
 
 
 def unit_vector(vector):
-    """ Returns the unit vector of the vector.  
+    """Return the unit vector of the vector.
+
     :param vector: vector to be normalised
     :return: normalised vector
     """
@@ -31,8 +27,8 @@ def unit_vector(vector):
 
 
 def angle_between(v1, v2):
-    """
-    Calculates angle between two vectors
+    """Calculate angle between two vectors
+
     :param v1: first vector
     :param v2: second vector
     :return: angle between the vectors
@@ -42,60 +38,32 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0))
 
 
-def vis_ang_xr(d, observer, m_above = 5):
-    """
+def vis_ang_xr(d, lat, lon, above_ground=5):
+    """Compute elevation angle between observer and data. Take into account curvature of the Earth.
     
     :param d: DataArray with altitudes
-    :param observer: tuple (latitude,longtitude) of observer
-    :param m_above: height of the observer above the terrain [m] (default: 5 m)
-    :return: DataArray with elavation angles from give obsarvation point
+    :param lat: latitude of the viewpoint
+    :param lon: longitude of the viewpoint
+    :param above_ground: height of the observer above terrain [m] (default: 5 m)
+    :return: DataArray with elevation angles from given observation point
+
     """
     latp = np.radians(d.lat)
     lonp = np.radians(d.lon)
     la, lo = np.meshgrid(latp, lonp)
 
-    lato = np.radians(observer[0])
-    lono = np.radians(observer[1])
-    alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))] + m_above
+    lato = np.radians(lat)
+    lono = np.radians(lon)
+    alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))] + above_ground
 
-    altitudes = d.data  # .reshape(len(latp)*len(lonp)
-    #print(np.shape(altitudes), np.shape(la), np.shape(lo))
-
-    Z = geo_to_cart(la.T, lo.T, altitudes)
+    Z = geo_to_cart(la.T, lo.T, d)
     O = geo_to_cart(lato, lono, alto)
-    OZ = Z - O
-    #print(np.shape(O))
-    #print(np.shape(OZ))
 
-    #print(np.shape(O))
     OZ = Z - O
     A = angle_between(OZ, O)
-    an = d.copy()
-    an.data = - np.degrees(A) + 180
-    an.name = 'observation angle'
+    A = -np.degrees(A) + 180
 
-    an.attrs['lon'] = observer[0]
-    an.attrs['lat'] = observer[1]
-    an.attrs['above_ground'] = m_above
+    an = xr.DataArray(A.T, coords={'lon': d.lon, 'lat': d.lat}, dims=('lon', 'lat'), name='elevation angle',
+                      attrs={**d.attrs, 'lon': lon, 'lat': lat, 'above_ground': above_ground})
 
     return an
-
-
-##test call
-
-# d = load_grt('CR_SR.grd')
-# nejvyssi = d.where(d == d.max(), drop=True).squeeze()
-# print(gerlach.lat, gerlach.lon)
-#
-# nejnizsi = d.where(d == d.min(), drop=True).squeeze()
-# print(nizko.lat, nizko.lon)
-#
-# A, an = vis_ang_xr(d, (50, 15))
-#
-# print(an)
-# fig, ax = plt.subplots(nrows=2, sharex=True, sharey=True)
-# s = ax[0].imshow(-np.degrees(A) + 180, origin='bottom')
-# plt.colorbar(s, ax=ax[0])
-# r = ax[1].imshow(d.data, origin='bottom')
-# plt.colorbar(r, ax=ax[1])
-#print(A)
