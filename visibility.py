@@ -1,20 +1,17 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 import xarray as xr
-import pylab as pl
-
-from . import visibility_angle as vis_ang
 
 def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
-    """Interpolate observation angle from geographic coordinates to polar coordinates around the observer.
+    """Interpolate elevation angle from geographic coordinates to polar coordinates around the observer.
 
-    :param data: DataArray with observation angles
-    :param lon: longitude of the observer, if None use data.attrs['lon']
-    :param lat: latitude of the observer, if None use data.attrs['lat']
+    :param data: DataArray with elevation angles
+    :param lon: longitude of the viewpoint, if None use data.attrs['lon']
+    :param lat: latitude of the viewpoint, if None use data.attrs['lat']
     :param dtheta: step in polar coordinate [°], default: 360/3600
     :param dr: step in radial coordinate
     :param maxr: maximum distance where to look for peaks
-    :return: DataArray with observation angles in polar coordinates
+    :return: DataArray with elevation angles in polar coordinates
 
     """
     # TODO: dr should be real distance along Earth surface, independent of the original geographic coordinates
@@ -73,7 +70,7 @@ def compute_horizon(mask, data):
 
     :param mask: DataArray. Visibility mask
     :param data: DataArray. Data to be evaluated along horizon. Horizontal dimension should be 'theta'.
-    :return: DataSet. Values (data, r, lon, lat) along the horizon versus polar angle (horizontal).
+    :return: DataSet. Values (data, r, lon, lat) along the horizon versus polar angle.
     """
 
     # for each angle find index of the last non-zero point

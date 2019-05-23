@@ -5,7 +5,7 @@ Viewpoint class
 import numpy as np
 import pylab as plt
 
-from . import visibility_angle as vis_ang
+from . import elevation_angle as elevation
 from . import visibility as vis
 
 class Viewpoint:
@@ -25,30 +25,30 @@ class Viewpoint:
         """
 
         self.altitude = altitude
-        viewing_angle = vis_ang.vis_ang_xr(altitude, lat=lat, lon=lon, above_ground=above_ground)
-        self.viewing_angle_polar = vis.data2polar(viewing_angle, dtheta=dtheta, dr=dr, maxr=maxr)
-        self.mask, self.ridges = vis.get_mask_and_ridges(self.viewing_angle_polar)
-        self.horizon = vis.compute_horizon(self.mask, self.viewing_angle_polar)
+        elevation_angle = elevation.vis_ang_xr(altitude, lat=lat, lon=lon, above_ground=above_ground)
+        self.elevation_angle_polar = vis.data2polar(elevation_angle, dtheta=dtheta, dr=dr, maxr=maxr)
+        self.mask, self.ridges = vis.get_mask_and_ridges(self.elevation_angle_polar)
+        self.horizon = vis.compute_horizon(self.mask, self.elevation_angle_polar)
 
     @property
     def lon(self):
         """Longitude of the viewpoint
 
         """
-        return self.viewing_angle_polar.attrs['lon']
+        return self.elevation_angle_polar.attrs['lon']
 
     @property
     def lat(self):
         """Latitude of the viewpoint
 
         """
-        return self.viewing_angle_polar.attrs['lat']
+        return self.elevation_angle_polar.attrs['lat']
 
     @staticmethod
-    def plot_panorama_scatter(viewing_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
+    def plot_panorama_scatter(elevation_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
         """Plot panorama from viewing angles in polar coordinates and a pixel mask
 
-        :param viewing_angles_polar: DataArray. Viewing angles in polar coordinates
+        :param elevation_angles_polar: DataArray. Viewing angles in polar coordinates
         :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
         :param rotate: rotate the view horizontally by this angle [°]
         :param y_in_degrees: y axis in degrees or project on a vertical plane?
@@ -59,7 +59,7 @@ class Viewpoint:
         # get horizontal and vertical angles of all visible (non-masked) points
         thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
         thetas = thetamesh.ravel()[mask.values.ravel() == 1]
-        angles = viewing_angles_polar.values.ravel()[mask.values.ravel() == 1]
+        angles = elevation_angles_polar.values.ravel()[mask.values.ravel() == 1]
 
         # rotate the view horizontally and convert y to [m] if requested
         thetas = (thetas + rotate) % (360)
@@ -82,10 +82,10 @@ class Viewpoint:
             plt.figure(figsize=(10, 2.5))
 
         # plot all visible points
-        self.plot_panorama_scatter(self.viewing_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
+        self.plot_panorama_scatter(self.elevation_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
                                    c='gray', alpha=0.2)
         # highlight edges
-        self.plot_panorama_scatter(self.viewing_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
+        self.plot_panorama_scatter(self.elevation_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
                                    c='k')
 
         # set labels etc.
