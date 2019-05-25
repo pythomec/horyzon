@@ -12,7 +12,7 @@ class Viewpoint:
     """Class Viewpoint represents view from a particular point and handles plotting of panorama and horizon.
 
     """
-    def __init__(self, altitude, lon, lat, above_ground = 5, dtheta= 360/3600*4, dr=0.001, maxr=1):
+    def __init__(self, altitude, lon, lat, above_ground = 5, dtheta= 360/3600*2, dr=0.001, maxr=1):
         """Constructor of Viewpoint class
 
         :param altitude: DataArray. Altitude vs longitude and latitude.
@@ -50,7 +50,7 @@ class Viewpoint:
 
         :param elevation_angles_polar: DataArray. Viewing angles in polar coordinates
         :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
-        :param rotate: rotate the view horizontally by this angle [°]
+        :param rotate: rotate azimuth [°]
         :param y_in_degrees: y axis in degrees or project on a vertical plane?
         :param kwargs: kwargs passed to plotting function (scatter)
         :return: None
@@ -58,20 +58,21 @@ class Viewpoint:
 
         # get horizontal and vertical angles of all visible (non-masked) points
         thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
-        thetas = thetamesh.ravel()[mask.values.ravel() == 1]
+        azimuth = thetamesh.ravel()[mask.values.ravel() == 1]
         angles = elevation_angles_polar.values.ravel()[mask.values.ravel() == 1]
 
         # rotate the view horizontally and convert y to [m] if requested
-        thetas = (thetas + rotate) % (360)
+        azimuth = (azimuth + rotate) % (360)
         y = angles if y_in_degrees else np.arctan(np.deg2rad(angles - 90))
 
         # plotting
-        plt.scatter(thetas, y, s=1, **kwargs)
+        plt.scatter(azimuth, y, s=1, **kwargs)
 
-    def plot_panorama(self, rotate=0, y_in_degrees=False, figsize=(10,2.5), newfig=True):
+    def plot_panorama(self, rotate=0, y_in_degrees=False, figsize=(10,2.5), newfig=True,
+                      xlabel='azimuth [°]'):
         """Plot panoramatic view of the surroundings
 
-        :param rotate: rotate the view horizontally by this angle [°]
+        :param rotate: rotate azimuth [°]
         :param y_in_degrees: y axis in degrees or project on a vertical plane?
         :param figsize: (dx,dy), default (10, 2.5)
         :param newfig: open new figure? default: True
@@ -89,13 +90,14 @@ class Viewpoint:
                                    c='k')
 
         # set labels etc.
-        plt.xlabel('[°]')
+        plt.xlabel(xlabel)
         if y_in_degrees:
             plt.ylabel('[°]')
         else:
             plt.yticks([])
         plt.title('lon =%.2f°, lat =%.2f°' % (self.lon, self.lat))
         plt.xlim([0, 360])
+        plt.gca().set_xticks(np.arange(0,360,45))
         plt.tight_layout()
 
     def plot_horizon_lonlat(self, *args, **kwargs):

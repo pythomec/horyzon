@@ -26,8 +26,8 @@ def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
     r = np.arange(dr, maxr + dr/2, dr)
     mesh_theta, mesh_r = np.meshgrid(theta, r)
 
-    grid_x = lon + mesh_r * np.cos(np.deg2rad(mesh_theta))
-    grid_y = lat + mesh_r * np.sin(np.deg2rad(mesh_theta))
+    grid_x = lon + mesh_r * np.sin(np.deg2rad(mesh_theta))
+    grid_y = lat + mesh_r * np.cos(np.deg2rad(mesh_theta))
 
     # interpolate to the grid
     d1, d2 = data.dims
