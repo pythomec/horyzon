@@ -46,10 +46,10 @@ Save the grid data in GMT v3 Compatible NetCDF format. Automatic data download i
  view = Viewpoint(altitude=alt, lon=lon, lat=lat)
  ```
  
-4. Plot panoramatic view rotated by 90°
+4. Plot panorama looking towards North
 
 ```
-view.plot_panorama(rotate=90) 
+view.plot_panorama(direction='N') 
 ```
 
 5. And voilà ...

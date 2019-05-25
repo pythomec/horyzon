@@ -2,16 +2,21 @@
 Viewpoint class
 """
 
+import numbers
 import numpy as np
 import pylab as plt
 
 from . import elevation_angle as elevation
 from . import visibility as vis
 
+direction2degrees = {dir:deg for dir, deg in zip(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                                                     np.arange(0, 360, 45))}
+
 class Viewpoint:
     """Class Viewpoint represents view from a particular point and handles plotting of panorama and horizon.
 
     """
+
     def __init__(self, altitude, lon, lat, above_ground = 5, dtheta= 360/3600*2, dr=0.001, maxr=1):
         """Constructor of Viewpoint class
 
@@ -68,19 +73,26 @@ class Viewpoint:
         # plotting
         plt.scatter(azimuth, y, s=1, **kwargs)
 
-    def plot_panorama(self, rotate=0, y_in_degrees=False, figsize=(10,2.5), newfig=True,
-                      xlabel='azimuth [°]'):
+    def plot_panorama(self, direction='S', y_in_degrees=False, figsize=(10,2.5), newfig=True,
+                      xlabel='', ylabel=''):
         """Plot panoramatic view of the surroundings
 
-        :param rotate: rotate azimuth [°]
+        :param direction: center of the panorama aims at this direction ('N','NE', ... or number [°]), default: 'S'
         :param y_in_degrees: y axis in degrees or project on a vertical plane?
         :param figsize: (dx,dy), default (10, 2.5)
         :param newfig: open new figure? default: True
         :return: None
         """
 
+        # find proper horizontal rotation
+        direction = direction2degrees.get(direction, direction)
+        if not isinstance(direction, numbers.Real):
+            raise ValueError('unknown direction %s' % (direction,))
+
+        rotate = (180 - direction) % 360
+
         if newfig:
-            plt.figure(figsize=(10, 2.5))
+            plt.figure(figsize=figsize)
 
         # plot all visible points
         self.plot_panorama_scatter(self.elevation_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
@@ -89,15 +101,18 @@ class Viewpoint:
         self.plot_panorama_scatter(self.elevation_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
                                    c='k')
 
-        # set labels etc.
+        # anotate the plot
         plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         if y_in_degrees:
             plt.ylabel('[°]')
         else:
             plt.yticks([])
         plt.title('lon =%.2f°, lat =%.2f°' % (self.lon, self.lat))
         plt.xlim([0, 360])
-        plt.gca().set_xticks(np.arange(0,360,45))
+        labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+        plt.xticks(ticks=(np.array([direction2degrees[l] for l in labels])+rotate) % 360,
+                   labels=labels)
         plt.tight_layout()
 
     def plot_horizon_lonlat(self, *args, **kwargs):
