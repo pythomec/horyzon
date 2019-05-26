@@ -3,21 +3,23 @@ Viewpoint class
 """
 
 import numbers
+
 import numpy as np
 import pylab as plt
 
 from . import elevation_angle as elevation
 from . import visibility as vis
 
-direction2degrees = {dir:deg for dir, deg in zip(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
-                                                     np.arange(0, 360, 45))}
+direction2degrees = {dir: deg for dir, deg in zip(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                                                  np.arange(0, 360, 45))}
+
 
 class Viewpoint:
     """Class Viewpoint represents view from a particular point and handles plotting of panorama and horizon.
 
     """
 
-    def __init__(self, altitude, lon, lat, above_ground = 5, dtheta= 360/3600*2, dr=0.001, maxr=1):
+    def __init__(self, altitude, lon, lat, above_ground=5, dtheta=360 / 3600 * 2, dr=0.001, maxr=1):
         """Constructor of Viewpoint class
 
         :param altitude: DataArray. Altitude vs longitude and latitude.
@@ -51,12 +53,12 @@ class Viewpoint:
 
     @staticmethod
     def plot_panorama_scatter(elevation_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
-        """Plot panorama from viewing angles in polar coordinates and a pixel mask
+        """Plot panorama based on elevations in polar coordinates and a pixel mask
 
         :param elevation_angles_polar: DataArray. Viewing angles in polar coordinates
         :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
         :param rotate: rotate azimuth [°]
-        :param y_in_degrees: y axis in degrees or project on a vertical plane?
+        :param y_in_degrees: y axis shows elevation angle (True) or projection to a vertical plane? Default: False
         :param kwargs: kwargs passed to plotting function (scatter)
         :return: None
         """
@@ -73,12 +75,12 @@ class Viewpoint:
         # plotting
         plt.scatter(azimuth, y, s=1, **kwargs)
 
-    def plot_panorama(self, direction='S', y_in_degrees=False, figsize=(10,2.5), newfig=True,
+    def plot_panorama(self, direction='S', y_in_degrees=False, figsize=(10, 2.5), newfig=True,
                       xlabel='', ylabel=''):
-        """Plot panoramatic view of the surroundings
+        """Plot panoramic view of the surroundings
 
         :param direction: center of the panorama aims at this direction ('N','NE', ... or number [°]), default: 'S'
-        :param y_in_degrees: y axis in degrees or project on a vertical plane?
+        :param y_in_degrees: y axis shows elevation angle (True) or projection to a vertical plane? Default: False
         :param figsize: (dx,dy), default (10, 2.5)
         :param newfig: open new figure? default: True
         :return: None
@@ -111,7 +113,7 @@ class Viewpoint:
         plt.title('lon =%.2f°, lat =%.2f°' % (self.lon, self.lat))
         plt.xlim([0, 360])
         labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
-        plt.xticks(ticks=(np.array([direction2degrees[l] for l in labels])+rotate) % 360,
+        plt.xticks(ticks=(np.array([direction2degrees[l] for l in labels]) + rotate) % 360,
                    labels=labels)
         plt.tight_layout()
 

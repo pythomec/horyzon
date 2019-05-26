@@ -2,7 +2,8 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 import xarray as xr
 
-def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
+
+def data2polar(data, lon=None, lat=None, dtheta=360 / 3600, dr=0.001, maxr=1):
     """Interpolate elevation angle from geographic coordinates to polar coordinates around the observer.
 
     :param data: DataArray with elevation angles
@@ -23,7 +24,7 @@ def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
 
     # create polar grid
     theta = np.arange(0, 360, dtheta)
-    r = np.arange(dr, maxr + dr/2, dr)
+    r = np.arange(dr, maxr + dr / 2, dr)
     mesh_theta, mesh_r = np.meshgrid(theta, r)
 
     grid_x = lon + mesh_r * np.sin(np.deg2rad(mesh_theta))
@@ -33,8 +34,8 @@ def data2polar(data, lon=None, lat=None, dtheta= 360/3600, dr=0.001, maxr=1):
     d1, d2 = data.dims
     interp_angle = RectBivariateSpline(data[d1], data[d2], data)
     ang_in_polar = interp_angle(grid_x, grid_y, grid=False)
-    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1:(('r','theta'),grid_x),
-                                                      d2:(('r','theta'),grid_y)},
+    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1: (('r', 'theta'), grid_x),
+                                                      d2: (('r', 'theta'), grid_y)},
                                 dims=['r', 'theta'])
 
     # set attributes
@@ -61,9 +62,10 @@ def get_mask_and_ridges(ang_in_polar):
     ridges = (ang_in_polar.diff('r').values <= 0) & mask.values[:-1, :]
     r, theta = ang_in_polar.r, ang_in_polar.theta
     ridges = xr.DataArray(np.vstack((ridges, [0] * len(theta))), coords={'r': r, 'theta': theta},
-                         dims=['r', 'theta'])
+                          dims=['r', 'theta'])
 
     return mask, ridges
+
 
 def compute_horizon(mask, data):
     """Compute horizon and evaluate its coordinates and data along it
@@ -74,10 +76,10 @@ def compute_horizon(mask, data):
     """
 
     # for each angle find index of the last non-zero point
-    ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1,:], axis=0) - 1
+    ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1, :], axis=0) - 1
 
     # evaluate data and its coordinates along the horizon
-    horizon = {data.name:('theta',data.values[ind_last_visible, np.arange(data.shape[1])])}
+    horizon = {data.name: ('theta', data.values[ind_last_visible, np.arange(data.shape[1])])}
     for c, val in data.coords.items():
         if c == 'theta':
             continue
@@ -87,9 +89,10 @@ def compute_horizon(mask, data):
         elif val.ndim == 2:
             horizon[c] = ('theta', val.values[ind_last_visible, np.arange(val.shape[1])])
 
-    horizon = xr.Dataset(data_vars = horizon, coords={'theta': data.theta})
+    horizon = xr.Dataset(data_vars=horizon, coords={'theta': data.theta})
 
     return horizon
+
 
 ###############################################
 
@@ -165,4 +168,4 @@ def interpolate_from_grid_to_any_points(x_grid, y_grid, data, x_out, y_out):
     data_interp = RegularGridInterpolator(points=(x_grid, y_grid), values=data, method='nearest', bounds_error=False)
     data_polar = data_interp((x_out, y_out))
 
-    return data_polar   
+    return data_polar
