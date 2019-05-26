@@ -38,7 +38,7 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0))
 
 
-def vis_ang_xr(d, lat, lon, above_ground=5):
+def compute_elevation(d, lat, lon, above_ground=5):
     """Compute elevation angle between observer and data. Take into account curvature of the Earth.
     
     :param d: DataArray with altitudes
@@ -56,9 +56,11 @@ def vis_ang_xr(d, lat, lon, above_ground=5):
     lono = np.radians(lon)
     alto = d.data[np.argmin(np.abs(latp - lato)), np.argmin(np.abs(lonp - lono))] + above_ground
 
+    # convert coordinates of the observer and of all points on the map to cartesian geocentric coordinates
     Z = geo_to_cart(la.T, lo.T, d)
     O = geo_to_cart(lato, lono, alto)
 
+    # compute elevation angle
     OZ = Z - O
     A = angle_between(OZ, O)
     A = -np.degrees(A) + 180

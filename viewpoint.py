@@ -30,7 +30,7 @@ class Viewpoint:
         """
 
         self.altitude = altitude
-        elevation_angle = elevation.vis_ang_xr(altitude, lat=lat, lon=lon, above_ground=above_ground)
+        elevation_angle = elevation.compute_elevation(altitude, lat=lat, lon=lon, above_ground=above_ground)
         self.elevation_angle_polar = vis.data2polar(elevation_angle, dtheta=dtheta, dr=dr, maxr=maxr)
         self.mask, self.ridges = vis.get_mask_and_ridges(self.elevation_angle_polar)
         self.horizon = vis.compute_horizon(self.mask, self.elevation_angle_polar)
