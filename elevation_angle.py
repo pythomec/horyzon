@@ -66,7 +66,7 @@ def compute_elevation(d, lat, lon, above_ground=5):
     A = angle_between(OZ, O)
     A = -np.degrees(A) + 180
 
-    an = xr.DataArray(A.T, coords={'lon': d.lon, 'lat': d.lat}, dims=('lon', 'lat'), name='elevation angle',
+    an = xr.DataArray(A.T, coords={'lon': d.lon, 'lat': d.lat}, dims=('lon', 'lat'), name='elevation',
                       attrs={**d.attrs, 'lon': lon, 'lat': lat, 'above_ground': above_ground})
 
     return an

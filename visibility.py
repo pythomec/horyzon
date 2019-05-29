@@ -36,7 +36,7 @@ def data2polar(data, lon=None, lat=None, dtheta=360 / 3600, dr=0.001, maxr=1):
     ang_in_polar = interp_angle(grid_x, grid_y, grid=False)
     ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1: (('r', 'theta'), grid_x),
                                                       d2: (('r', 'theta'), grid_y)},
-                                dims=['r', 'theta'])
+                                dims=['r', 'theta'], name=data.name)
 
     # set attributes
     ang_in_polar.attrs['lon'] = lon
