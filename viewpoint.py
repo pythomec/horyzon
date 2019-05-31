@@ -70,7 +70,7 @@ class Viewpoint:
 
         # rotate the view horizontally and convert y to [m] if requested
         azimuth = (azimuth + rotate) % (360)
-        y = angles if y_in_degrees else np.arctan(np.deg2rad(angles - 90))
+        y = angles if y_in_degrees else np.arctan(np.deg2rad(angles))
 
         # plotting
         plt.scatter(azimuth, y, s=1, **kwargs)
