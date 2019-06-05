@@ -1,127 +1,98 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator, RectBivariateSpline
 import xarray as xr
-import pylab as pl
 
-from . import visibility_angle as vis_ang
 
-def ang2polar(ang, observer = None, dtheta= 360/3600, dr=0.001, maxr=1):
-    """Interpolate observation angle from geographic coordinates to polar coordinates around the observer.
+def data2polar(data, lon=None, lat=None, dtheta=360 / 3600, dr=0.001, maxr=1):
+    """Interpolate elevation angle from geographic coordinates to polar coordinates around the observer.
 
-    :param ang: DataArray with observation angles
-    :param observer: tuple (latitude,longtitude), position of the observer, if None use ang.attrs['observer']
-    :param dtheta: step in polar coordinate [°], default: 180/3600
+    :param data: DataArray with elevation angles
+    :param lon: longitude of the viewpoint, if None use data.attrs['lon']
+    :param lat: latitude of the viewpoint, if None use data.attrs['lat']
+    :param dtheta: step in polar coordinate [°], default: 360/3600
     :param dr: step in radial coordinate
     :param maxr: maximum distance where to look for peaks
-    :return: DataArray with observation angles in polar coordinates
+    :return: DataArray with elevation angles in polar coordinates
+
     """
     # TODO: dr should be real distance along Earth surface, independent of the original geographic coordinates
     # TODO: default dtheta and dr should be adjusted to grid size (see e.g. generate_polar_grid)
+    # TODO: allow data in different coordinate system than lon/lat
 
-    observer = observer or ang.attrs['observer']
-    ox, oy = observer
+    lon = lon or data.attrs['lon']
+    lat = lat or data.attrs['lat']
 
+    # create polar grid
     theta = np.arange(0, 360, dtheta)
-    r = np.arange(dr, maxr + dr/2, dr)
+    r = np.arange(dr, maxr + dr / 2, dr)
     mesh_theta, mesh_r = np.meshgrid(theta, r)
 
-    grid_x = ox + mesh_r * np.cos(np.deg2rad(mesh_theta))
-    grid_y = oy + mesh_r * np.sin(np.deg2rad(mesh_theta))
+    grid_x = lon + mesh_r * np.sin(np.deg2rad(mesh_theta))
+    grid_y = lat + mesh_r * np.cos(np.deg2rad(mesh_theta))
 
-    d1, d2 = ang.dims
-    interp_angle = RectBivariateSpline(ang[d1], ang[d2], ang)
+    # interpolate to the grid
+    d1, d2 = data.dims
+    interp_angle = RectBivariateSpline(data[d1], data[d2], data)
     ang_in_polar = interp_angle(grid_x, grid_y, grid=False)
-    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1:(('r','theta'),grid_x),
-                                                      d2:(('r','theta'),grid_y)},
-                                dims=['r', 'theta'])
-    ang_in_polar.attrs['observer'] = observer
+    ang_in_polar = xr.DataArray(ang_in_polar, coords={'r': r, 'theta': theta, d1: (('r', 'theta'), grid_x),
+                                                      d2: (('r', 'theta'), grid_y)},
+                                dims=['r', 'theta'], name=data.name)
+
+    # set attributes
+    ang_in_polar.attrs['lon'] = lon
+    ang_in_polar.attrs['lat'] = lat
 
     return ang_in_polar
 
 
-def get_mask_and_ridges(ang_in_polar, return_horizon = False):
-    """Find visible points and ridges in polar coordinates and return corresponding masks
+def get_mask_and_ridges(ang_in_polar):
+    """Find visible points and ridges in polar coordinates
 
     :param ang_in_polar: DataArray with viewing angles in polar coordinates
     :param return_horizon: bool. Compute and return horizon? Default: False
     :return: (mask, edges), DataArrays, masks marking visible points and ridges
-             or (mask, edges, horizon)
+
     """
+
+    # compute visibility mask
     cummax = np.maximum.accumulate(ang_in_polar, axis=0)
     mask = ang_in_polar >= cummax
+
+    # compute ridges
     ridges = (ang_in_polar.diff('r').values <= 0) & mask.values[:-1, :]
     r, theta = ang_in_polar.r, ang_in_polar.theta
     ridges = xr.DataArray(np.vstack((ridges, [0] * len(theta))), coords={'r': r, 'theta': theta},
-                         dims=['r', 'theta'])
+                          dims=['r', 'theta'])
 
-    if return_horizon:
-        ind_last_visible = ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1,:], axis=0) - 1
-        horizon = {'ang':('theta',ang_in_polar.values[ind_last_visible, np.arange(ang_in_polar.shape[1])])}
-        for c, val in ang_in_polar.coords.items():
-            if c == 'theta':
-                continue
-
-            if val.ndim == 1:
-                horizon[c] = ('theta', val.values[ind_last_visible])
-            elif val.ndim == 2:
-                horizon[c] = ('theta', val.values[ind_last_visible, np.arange(val.shape[1])])
-
-        horizon = xr.Dataset(data_vars = horizon, coords={'theta': theta})
-
-        return mask, ridges, horizon
-    else:
-        return mask, ridges
+    return mask, ridges
 
 
-def plot_panorama_from_mask(ang_in_polar, mask=None, rotate = 0, y_in_degrees = False, **kwargs):
-    """Plot panorama from viewing angles in polar coordinates and pixel mask
+def compute_horizon(mask, data):
+    """Compute horizon and evaluate its coordinates and data along it
 
-    :param ang_in_polar: DataArray. Viewing angles in polar coordinates
-    :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
-    :param rotate: rotate the view by this angle [°]
-    :param kwargs: kwargs passed to plotting function (scatter)
-    :return: None
+    :param mask: DataArray. Visibility mask
+    :param data: DataArray. Data to be evaluated along horizon. Horizontal dimension should be 'theta'.
+    :return: DataSet. Values (data, r, lon, lat) along the horizon versus polar angle.
     """
 
-    thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
-    thetas = thetamesh.ravel()[mask.values.ravel() == 1]
-    angles = ang_in_polar.values.ravel()[mask.values.ravel() == 1]
+    # for each angle find index of the last non-zero point
+    ind_last_visible = mask.shape[0] - np.argmax(mask.values[::-1, :], axis=0) - 1
 
-    thetas = (thetas + rotate) % (360)
+    # evaluate data and its coordinates along the horizon
+    horizon = {data.name: ('theta', data.values[ind_last_visible, np.arange(data.shape[1])])}
+    for c, val in data.coords.items():
+        if c == 'theta':
+            continue
 
-    if y_in_degrees:
-        y  = angles
-    else:
-        y = np.arctan( np.deg2rad(angles - 90))
+        if val.ndim == 1:
+            horizon[c] = ('theta', val.values[ind_last_visible])
+        elif val.ndim == 2:
+            horizon[c] = ('theta', val.values[ind_last_visible, np.arange(val.shape[1])])
 
-    pl.scatter(thetas, y, s=1, **kwargs)
+    horizon = xr.Dataset(data_vars=horizon, coords={'theta': data.theta})
 
-def plot_panorama(z, observer, rotate = 0, m_above = 5, y_in_degrees = False):
-    """
+    return horizon
 
-    :param z: DataArray. Topographic data in lon, lat projection, e.g. output of horyzon.data.load_grt
-    :param observer: (lon, lat), position of the observer
-    :param rotate: rotate the view by this angle [°]
-    :param m_above: height of the observer above the terrain [m] (default: 5 m)
-    :return: None
-    """
-
-    lon, lat = observer
-    ang = vis_ang.vis_ang_xr(z, (lat, lon), m_above)
-    ang_in_polar = ang2polar(ang)
-    mask, ridges = get_mask_and_ridges(ang_in_polar)
-
-    pl.figure(figsize=(10, 2.5))
-    plot_panorama_from_mask(ang_in_polar, mask, rotate=rotate, y_in_degrees=y_in_degrees, c='gray', alpha=0.1)
-    plot_panorama_from_mask(ang_in_polar, ridges, rotate=rotate, y_in_degrees=y_in_degrees, c='k')
-    pl.xlabel('[°]')
-    if y_in_degrees:
-        pl.ylabel('[°]')
-    else:
-        pl.yticks([])
-    pl.title('lon =%.2f°, lat =%.2f°' % (lon, lat))
-    pl.xlim([0, 360])
-    pl.tight_layout()
 
 ###############################################
 
@@ -197,4 +168,4 @@ def interpolate_from_grid_to_any_points(x_grid, y_grid, data, x_out, y_out):
     data_interp = RegularGridInterpolator(points=(x_grid, y_grid), values=data, method='nearest', bounds_error=False)
     data_polar = data_interp((x_out, y_out))
 
-    return data_polar   
+    return data_polar
