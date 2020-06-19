@@ -3,12 +3,18 @@ Viewpoint class
 """
 
 import numbers
+from functools import lru_cache
+import datetime
+from collections.abc import Iterable
 
 import numpy as np
 import pylab as plt
+import xarray as xr
 
 from . import elevation_angle as elevation
 from . import visibility as vis
+from . import sun
+from . import timezones as tzs
 
 direction2degrees = {dir: deg for dir, deg in zip(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
                                                   np.arange(0, 360, 45))}
@@ -51,6 +57,68 @@ class Viewpoint:
         """
         return self.elevation_angle_polar.attrs['lat']
 
+    def sun_position(self, when):
+        """Compute sun position at particular date and time
+
+        :param when: date or datetime object or array of these, must contain time zone, date is expanded to the whole
+                     sun trajectory from midnight to midnight
+        :return: dataset with sun eleveation vs azimuth and is_visible flag
+        """
+
+        if not isinstance(when, Iterable):
+            when = [when]
+
+        elevations = [self._sun_trajectory(w) if isinstance(w, datetime.date) else
+                      sun.get_sun_position(lon=self.lon, lat=self.lat,
+                                           when=tzs.fill_default_tz(w, lon=self.lon, lat=self.lat)) for w in when]
+
+        elevations = xr.concat(elevations, dim='datetime')
+        return elevations
+
+        horizon = self.horizon
+        shift_by_sun_radius = sun.sun_radius_deg if is_edge_visible else 0
+        is_visible = horizon.elevation.interp(theta=sun_elevation.azimuth) < sun_elevation + shift_by_sun_radius
+
+        sun_trajectory = xr.Dataset(data_vars={'elevation': ('datetime', sun_elevation),
+                                               'is_visible': ('datetime', is_visible)},
+                                    coords=sun_elevation.coords)
+
+        return sun_trajectory
+
+
+    def sun_trajectory(self, when, is_edge_visible = True):
+        """Return sun trajectory and visibility mask for given date
+
+        :param when: date or datetime object, must contain time zone
+        :return: dataset with sun elevation vs azimuth/time and is_visible mask
+        """
+
+        when = datetime.datetime(when.year, when.month, when.day, tzinfo=when.tzinfo)
+        sun_elevation = self._sun_trajectory(when)
+
+        horizon = self.horizon
+        shift_by_sun_radius = sun.sun_radius_deg if is_edge_visible else 0
+        is_visible = horizon.elevation.interp(theta=sun_elevation.azimuth) < sun_elevation + shift_by_sun_radius
+
+        sun_trajectory = xr.Dataset(data_vars={'elevation': ('datetime', sun_elevation),
+                                               'is_visible': ('datetime', is_visible)},
+                                    coords=sun_elevation.coords)
+
+        return sun_trajectory
+
+    @lru_cache(maxsize=16) # TODO: set reasonable cache size
+    def _sun_trajectory(self, when):
+        """Return sun trajectory and visibility mask for given date
+
+        The position is corrected on refraction. Is_visible mask is true even if the center of the Sun is below
+        horizon but part of the sun disk is still visible.
+
+        :param when: datetime object, must contain time zone
+        :return: edataset with sun elevation vs azimuth/time and is_visible mask
+        """
+
+        return sun.get_sun_trajectory(self.lat, self.lon, when)
+
     @staticmethod
     def plot_panorama_scatter(elevation_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
         """Plot panorama based on elevations in polar coordinates and a pixel mask
@@ -75,8 +143,19 @@ class Viewpoint:
         # plotting
         plt.scatter(azimuth, y, s=1, **kwargs)
 
+    def plot_sun_trajectory(self, when, y_in_degrees=False):
+        trajectory = self.sun_trajectory(when, is_edge_visible=False)
+
+        sun_trajectory_x = trajectory.azimuth.where(trajectory.is_visible)
+
+        sun_trajectory_y = trajectory.elevation.where(trajectory.is_visible)
+        if not y_in_degrees:
+            sun_trajectory_y = np.arctan(np.deg2rad(sun_trajectory_y))
+
+        plt.plot(sun_trajectory_x, sun_trajectory_y, 'y')
+
     def plot_panorama(self, direction='S', y_in_degrees=False, figsize=(10, 2.5), newfig=True,
-                      xlabel='', ylabel=''):
+                      xlabel='', ylabel='', when=None):
         """Plot panoramic view of the surroundings
 
         :param direction: center of the panorama aims at this direction ('N','NE', ... or number [°]), default: 'S'
@@ -102,6 +181,10 @@ class Viewpoint:
         # highlight edges
         self.plot_panorama_scatter(self.elevation_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
                                    c='k')
+
+        # plot the Sun
+        if when is not None:
+            self.plot_sun_trajectory(when, y_in_degrees=y_in_degrees)
 
         # anotate the plot
         plt.xlabel(xlabel)
