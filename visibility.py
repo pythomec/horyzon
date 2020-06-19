@@ -55,7 +55,9 @@ def get_mask_and_ridges(ang_in_polar):
     """
 
     # compute visibility mask
-    cummax = np.maximum.accumulate(ang_in_polar, axis=0)
+    # FIX: cannot use xarray due to https://github.com/pydata/xarray/issues/2017
+    #cummax = np.maximum.accumulate(ang_in_polar, axis=0)
+    cummax = np.maximum.accumulate(ang_in_polar.values, axis=0)
     mask = ang_in_polar >= cummax
 
     # compute ridges
