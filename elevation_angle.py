@@ -36,7 +36,7 @@ def angle_between(v1, v2):
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0))
+    return np.arccos(np.nan_to_num(np.clip(np.dot(v1_u, v2_u[0, 0, :]), -1.0, 1.0)))
 
 
 def compute_elevation(d, lat, lon, above_ground=5):
