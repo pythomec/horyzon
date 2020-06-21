@@ -19,12 +19,13 @@ class Viewpoint:
 
     """
 
-    def __init__(self, altitude, lon, lat, above_ground=5, dtheta=360 / 3600 * 2, dr=0.001, maxr=1):
+    def __init__(self, altitude, lon, lat, alt=None, above_ground=5, dtheta=360 / 3600 * 2, dr=0.001, maxr=1):
         """Constructor of Viewpoint class
 
         :param altitude: DataArray. Altitude vs longitude and latitude.
         :param lon: longitude of the viewpoint
         :param lat: latitude of the viewpoint
+        :param alt: altitude of the viewpoint [m], default: compute from position
         :param above_ground: height of the observer above ground [m] (default: 5)
         :param dtheta: step in the polar angle [°], default: 360/3600*2
         :param dr: step in radial coordinate
@@ -32,8 +33,9 @@ class Viewpoint:
         """
 
         self.altitude = altitude
-        elevation_angle = elevation.compute_elevation(altitude, lat=lat, lon=lon, above_ground=above_ground)
-        self.elevation_angle_polar = vis.data2polar(elevation_angle, dtheta=dtheta, dr=dr, maxr=maxr)
+        elevation_angle = elevation.compute_elevation(altitude, lat=lat, lon=lon, alt=alt, above_ground=above_ground)
+        self.elevation_angle_polar = vis.data2polar(elevation_angle[0], dtheta=dtheta, dr=dr, maxr=maxr)
+        self.observer_elevation = elevation_angle[1]
         self.mask, self.ridges = vis.get_mask_and_ridges(self.elevation_angle_polar)
         self.horizon = vis.compute_horizon(self.mask, self.elevation_angle_polar)
 
@@ -110,7 +112,7 @@ class Viewpoint:
             plt.ylabel('[°]')
         else:
             plt.yticks([])
-        plt.title('lon =%.2f°, lat =%.2f°' % (self.lon, self.lat))
+        plt.title('lon =%.2f°, lat =%.2f°, elevation =%d' % (self.lon, self.lat, self.observer_elevation))
         plt.xlim([0, 360])
         labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
         plt.xticks(ticks=(np.array([direction2degrees[l] for l in labels]) + rotate) % 360,
