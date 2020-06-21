@@ -8,6 +8,51 @@ import pyproj
 from pyresample.geometry import AreaDefinition
 from pyresample.image import ImageContainerQuick
 
+import wget
+import shutil
+import sys
+import tempfile
+from contextlib import contextmanager
+
+@contextmanager
+def tempdir():
+    path = tempfile.mkdtemp()
+    print(path)
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(path)
+        except IOError:
+            sys.stderr.write('Failed to clean up temp dir {}'.format(path))
+
+
+def get_grt_data(lon, lat, lonrange=1, latrange=1):
+    """ Obtains grt altitude data from www.gmrt.org as netcdf file
+        Stored with given name if desired, temporary file by default
+
+        :param lon: float longtitude
+        :param lat: latitude
+        :param lonrange: half of angular range of donwloaded data (to east and to west)
+        :param lanrange: half of angular range of donwloaded data (to east and to west)
+        :return: xarray dataset of altitude with lon, lat as coordinates
+    """
+
+    n = lat + latrange
+    w = lon - lonrange
+    e = lon + lonrange
+    s = lat - latrange
+    url = 'https://www.gmrt.org/services/GridServer?north={}&west={}&east={}&south={}&layer=topo&format=netcdf&resolution=high'.format(
+        n, w, e, s)
+
+    with tempdir() as base_dir:
+        filename = '{}/current_grt_file.grt'.format(base_dir)
+        print('Downloading altitude data, not saving \n n={}, w={}, e={}, s={}'.format(n, w, e, s))
+        wget.download(url, filename)
+        alt = load_grt(filename)
+    return alt
+
+
 def load_grt(fname, name = 'altitude', dlat = None, dlon = None):
     '''Load topographic data from grt file.
 
