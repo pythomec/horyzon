@@ -6,6 +6,7 @@ import numbers
 
 import numpy as np
 import pylab as plt
+import scipy
 
 from . import elevation_angle as elevation
 from . import visibility as vis
@@ -77,6 +78,31 @@ class Viewpoint:
         # plotting
         plt.scatter(azimuth, y, s=1, **kwargs)
 
+    def plot_panorama_scatter_colored(self,elevation_angles_polar, mask, rotate=0, y_in_degrees=False, **kwargs):
+        """Plot panorama based on elevations in polar coordinates and a pixel mask
+
+        :param elevation_angles_polar: DataArray. Viewing angles in polar coordinates
+        :param mask: DataArray. Pixel mask, can be either all visible pixels or just ridges
+        :param rotate: rotate azimuth [°]
+        :param y_in_degrees: y axis shows elevation angle (True) or projection to a vertical plane? Default: False
+        :param kwargs: kwargs passed to plotting function (scatter)
+        :return: None
+        """
+
+        # get horizontal and vertical angles of all visible (non-masked) points
+        thetamesh, rmesh = np.meshgrid(mask.theta, mask.r)
+        azimuth = thetamesh.ravel()[mask.values.ravel() == 1]
+        angles = elevation_angles_polar.values.ravel()[mask.values.ravel() == 1]
+        print(elevation_angles_polar)
+        colors = rmesh.ravel()[mask.values.ravel() == 1]
+        #vis.data2polar(self.altitude, dtheta=0.001, dr=0.001, maxr=0.5).values.ravel()[mask.values.ravel() == 1]
+        # rotate the view horizontally and convert y to [m] if requested
+        azimuth = (azimuth + rotate) % (360)
+        y = angles if y_in_degrees else np.arctan(np.deg2rad(angles))
+
+        # plotting
+        plt.scatter(azimuth, y, s=1, c=colors, cmap='terrain', alpha=0.2,  **kwargs)
+
     def plot_panorama(self, direction='S', y_in_degrees=False, figsize=(10, 2.5), newfig=True,
                       xlabel='', ylabel=''):
         """Plot panoramic view of the surroundings
@@ -99,8 +125,11 @@ class Viewpoint:
             plt.figure(figsize=figsize)
 
         # plot all visible points
-        self.plot_panorama_scatter(self.elevation_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
-                                   c='gray', alpha=0.2)
+        #self.plot_panorama_scatter(self.elevation_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees,
+        #                           c='gray', alpha=0.2)
+
+        self.plot_panorama_scatter_colored(self.elevation_angle_polar, self.mask, rotate=rotate, y_in_degrees=y_in_degrees)
+
         # highlight edges
         self.plot_panorama_scatter(self.elevation_angle_polar, self.ridges, rotate=rotate, y_in_degrees=y_in_degrees,
                                    c='k')
